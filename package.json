@@ -1,0 +1,21 @@
+{
+  "name": "lighttrails",
+  "version": "1.0.0",
+  "description": "A real-time WebSocket application for creating and sharing light trails",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "websocket",
+    "realtime",
+    "lighttrails"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.16.0"
+  }
+}
+

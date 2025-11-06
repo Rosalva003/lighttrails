@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LightTrails - WebSocket Demo</title>
+  <!-- Google Fonts - Rounded Sans Serif -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Varela+Round&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- 
+    LightTrails - Real-time collaborative drawing application
+    HTML Structure:
+    - Container with status indicator
+    - Canvas container with two canvas layers (drawing + cursors)
+    - Controls (color picker, clear button, random color)
+    - Instructions
+  -->
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: 'Quicksand', 'Nunito', 'Varela Round', -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', 'SF Rounded', 'Helvetica Neue', 'Segoe UI', 'Arial Rounded MT Bold', Arial, sans-serif;
+      /* Diagonal gradient with pastel pinks, lilacs, and soft purples */
+      background: linear-gradient(135deg, 
+        #ffd6e8 0%,      /* Soft pastel pink */
+        #f5c8e8 20%,    /* Light pink-lilac */
+        #e8c5f0 40%,    /* Lilac */
+        #d4b3f5 60%,    /* Soft purple-lilac */
+        #c8a8f8 80%,    /* Light purple */
+        #b89df5 100%   /* Soft purple */
+      );
+      /* Radial gradient overlay for depth */
+      background-image: 
+        radial-gradient(ellipse at 20% 30%, rgba(255, 214, 232, 0.6) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 70%, rgba(184, 157, 245, 0.6) 0%, transparent 50%);
+      background-size: 100% 100%, 100% 100%;
+      background-blend-mode: overlay;
+      color: white;
+      position: relative;
+      min-height: 100vh;
+    }
+
+    .container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 3em;
+      font-weight: 700;
+      letter-spacing: 2px;
+      pointer-events: auto;
+      position: relative;
+      
+      /* Pink to purple gradient */
+      background: linear-gradient(135deg, #ff6b9d 0%, #c44569 50%, #6c5ce7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      
+      /* Enhanced light glow effect using multiple drop-shadows */
+      filter: drop-shadow(0 0 4px rgba(255, 107, 157, 0.8)) 
+              drop-shadow(0 0 8px rgba(255, 107, 157, 0.6)) 
+              drop-shadow(0 0 12px rgba(196, 69, 105, 0.5))
+              drop-shadow(0 0 16px rgba(196, 69, 105, 0.4))
+              drop-shadow(0 0 20px rgba(108, 92, 231, 0.3))
+              drop-shadow(0 0 24px rgba(108, 92, 231, 0.2));
+      
+      /* Additional text-shadow for extra glow */
+      text-shadow: 
+        0 0 10px rgba(255, 107, 157, 0.5),
+        0 0 20px rgba(196, 69, 105, 0.4),
+        0 0 30px rgba(108, 92, 231, 0.3);
+      
+      /* Fallback for browsers that don't support background-clip */
+      color: #ff6b9d;
+    }
+
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 2em;
+        letter-spacing: 1px;
+      }
+      .subtitle {
+        font-size: 0.6em;
+        letter-spacing: 2px;
+      }
+      .ui-overlay {
+        width: 95%;
+        top: 10px;
+      }
+      .status, .info {
+        font-size: 12px;
+        padding: 10px 15px;
+      }
+    }
+
+    .subtitle {
+      text-align: center;
+      margin-bottom: 20px;
+      opacity: 0.6;
+      font-size: 0.7em;
+      font-weight: 400;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      pointer-events: auto;
+      
+      /* Light glow effect for subtitle */
+      text-shadow: 
+        0 0 4px rgba(255, 255, 255, 0.4),
+        0 0 8px rgba(255, 255, 255, 0.3),
+        0 0 12px rgba(255, 255, 255, 0.2);
+      
+      filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.3))
+              drop-shadow(0 0 6px rgba(255, 255, 255, 0.2));
+    }
+
+    .status {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding: 12px 20px;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
+      border-radius: 10px;
+      pointer-events: auto;
+      
+      /* Light glow effect */
+      box-shadow: 
+        0 0 10px rgba(255, 255, 255, 0.1),
+        0 0 20px rgba(255, 255, 255, 0.05);
+      
+      color: rgba(255, 255, 255, 0.95);
+      text-shadow: 
+        0 0 4px rgba(255, 255, 255, 0.3),
+        0 0 8px rgba(255, 255, 255, 0.2);
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #ff4444;
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.connected {
+      background: #44ff44;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .canvas-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+    }
+
+    #canvas {
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.2);
+      cursor: crosshair;
+      touch-action: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      display: block;
+    }
+
+    #cursorCanvas {
+      width: 100vw;
+      height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: 2;
+      display: block;
+    }
+
+    .controls {
+      margin-top: 15px;
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+    }
+
+    .color-picker {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .color-picker label {
+      font-weight: 500;
+    }
+
+    input[type="color"] {
+      width: 60px;
+      height: 40px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button {
+      padding: 10px 20px;
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      
+      /* Light glow effect */
+      text-shadow: 
+        0 0 4px rgba(255, 255, 255, 0.4),
+        0 0 8px rgba(255, 255, 255, 0.2);
+      
+      box-shadow: 
+        0 0 8px rgba(255, 255, 255, 0.15),
+        0 0 16px rgba(255, 255, 255, 0.1);
+    }
+
+    button:hover {
+      background: rgba(255, 255, 255, 0.3);
+      border-color: rgba(255, 255, 255, 0.5);
+      transform: translateY(-2px);
+      
+      /* Enhanced glow on hover */
+      box-shadow: 
+        0 0 12px rgba(255, 255, 255, 0.25),
+        0 0 24px rgba(255, 255, 255, 0.15),
+        0 0 36px rgba(255, 255, 255, 0.1);
+      
+      text-shadow: 
+        0 0 6px rgba(255, 255, 255, 0.6),
+        0 0 12px rgba(255, 255, 255, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .info {
+      margin-top: 15px;
+      padding: 12px 20px;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
+      border-radius: 10px;
+      font-size: 13px;
+      text-align: center;
+      pointer-events: auto;
+      
+      /* Light glow effect */
+      box-shadow: 
+        0 0 10px rgba(255, 255, 255, 0.1),
+        0 0 20px rgba(255, 255, 255, 0.05);
+      
+      color: rgba(255, 255, 255, 0.9);
+      text-shadow: 
+        0 0 3px rgba(255, 255, 255, 0.3),
+        0 0 6px rgba(255, 255, 255, 0.2);
+    }
+
+    /* Overlay UI positioning */
+    .ui-overlay {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      width: 90%;
+      max-width: 800px;
+      pointer-events: none;
+    }
+
+    .ui-overlay > * {
+      pointer-events: auto;
+    }
+  </style>
+</head>
+<body>
+  <!-- Full-screen canvas background -->
+  <div class="canvas-container">
+    <canvas id="canvas"></canvas>
+    <canvas id="cursorCanvas"></canvas>
+  </div>
+
+  <!-- Overlay UI controls -->
+  <div class="container ui-overlay">
+    <h1>Light Trails</h1>
+    <p class="subtitle">Real-time collaborative motion art</p>
+    
+    <div class="status">
+      <div class="status-indicator">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Connecting...</span>
+      </div>
+      <div>
+        <span>Connected clients: <strong id="clientCount">0</strong></span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="color-picker">
+        <label for="colorPicker">Color:</label>
+        <input type="color" id="colorPicker" value="#ff6b6b">
+      </div>
+      <button id="clearBtn">Clear Canvas</button>
+      <button id="randomColorBtn">Random Color</button>
+    </div>
+
+    <div class="info">
+      <strong>Instructions:</strong> Click and drag anywhere on the screen to create light trails. 
+      Your trails will be visible to all connected clients in real-time!
+    </div>
+  </div>
+
+  <!-- 
+    Client-side JavaScript:
+    - Connects to WebSocket server
+    - Handles drawing on canvas
+    - Receives and renders trails from other users
+    - Manages mouse position broadcasting
+    - Implements smooth fading trails
+  -->
+  <script src="client.js"></script>
+</body>
+</html>
+
