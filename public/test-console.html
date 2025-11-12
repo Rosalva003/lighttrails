@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Console Test - LightTrails</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #1a1a1a;
+      color: #fff;
+    }
+    .test-box {
+      background: #2a2a2a;
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px 5px;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    #output {
+      background: #000;
+      color: #0f0;
+      padding: 15px;
+      border-radius: 5px;
+      font-family: monospace;
+      min-height: 200px;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 Browser Console Test</h1>
+  
+  <div class="test-box">
+    <h2>How to Open Console:</h2>
+    <ul>
+      <li><strong>Windows/Linux:</strong> Press <code>F12</code> or <code>Ctrl + Shift + I</code></li>
+      <li><strong>Mac:</strong> Press <code>Cmd + Option + I</code></li>
+      <li><strong>Or:</strong> Right-click → "Inspect" → Click "Console" tab</li>
+    </ul>
+  </div>
+
+  <div class="test-box">
+    <h2>Test Console Output:</h2>
+    <button onclick="testConsole()">Test Console.log</button>
+    <button onclick="testError()">Test Console.error</button>
+    <button onclick="testCanvas()">Test Canvas Detection</button>
+    <button onclick="clearOutput()">Clear Output</button>
+    
+    <h3>Output:</h3>
+    <div id="output">Click buttons above to test...\n</div>
+  </div>
+
+  <div class="test-box">
+    <h2>Canvas Status:</h2>
+    <div id="canvasStatus">Checking...</div>
+  </div>
+
+  <script>
+    // Capture console output
+    const output = document.getElementById('output');
+    const originalLog = console.log;
+    const originalError = console.error;
+    const originalWarn = console.warn;
+
+    function addOutput(message, type = 'log') {
+      const timestamp = new Date().toLocaleTimeString();
+      const prefix = type === 'error' ? '❌' : type === 'warn' ? '⚠️' : '✅';
+      output.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+      output.scrollTop = output.scrollHeight;
+    }
+
+    console.log = function(...args) {
+      originalLog.apply(console, args);
+      addOutput(args.join(' '), 'log');
+    };
+
+    console.error = function(...args) {
+      originalError.apply(console, args);
+      addOutput(args.join(' '), 'error');
+    };
+
+    console.warn = function(...args) {
+      originalWarn.apply(console, args);
+      addOutput(args.join(' '), 'warn');
+    };
+
+    function testConsole() {
+      console.log('✅ Console is working! This is a test message.');
+      addOutput('Test button clicked - Console.log works!', 'log');
+    }
+
+    function testError() {
+      console.error('❌ This is a test error message.');
+      addOutput('Test error button clicked', 'error');
+    }
+
+    function testCanvas() {
+      const canvas = document.getElementById('canvas');
+      if (canvas) {
+        console.log('✅ Canvas element found!');
+        addOutput('Canvas element found in DOM', 'log');
+      } else {
+        console.error('❌ Canvas element NOT found!');
+        addOutput('Canvas element NOT found in DOM', 'error');
+      }
+    }
+
+    function clearOutput() {
+      output.textContent = 'Output cleared...\n';
+    }
+
+    // Check canvas status
+    window.addEventListener('load', () => {
+      const canvasStatus = document.getElementById('canvasStatus');
+      const canvas = document.getElementById('canvas');
+      
+      if (canvas) {
+        canvasStatus.innerHTML = '✅ Canvas element exists in DOM<br>';
+        canvasStatus.innerHTML += `Size: ${canvas.width} x ${canvas.height}<br>`;
+        canvasStatus.innerHTML += `Position: ${canvas.style.position || 'static'}<br>`;
+        canvasStatus.innerHTML += `Z-index: ${canvas.style.zIndex || 'auto'}`;
+      } else {
+        canvasStatus.innerHTML = '❌ Canvas element NOT found!';
+      }
+    });
+
+    // Initial message
+    console.log('🔍 Console test page loaded. Open your browser console (F12) to see messages!');
+    addOutput('Page loaded. Try clicking the test buttons above.', 'log');
+  </script>
+</body>
+</html>
+
+
